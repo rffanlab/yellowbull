@@ -1,0 +1,101 @@
+"""Agent 配置管理
+
+按模块拆分为 LLMSettings / ExecutionSettings / ExperienceSettings / DatabaseSettings，
+顶层 Settings 聚合所有子配置，支持环境变量前缀 YELLOWBULL_ 覆盖。
+"""
+
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LLMSettings(BaseSettings):
+    """LLM 调用配置"""
+
+    model_config = SettingsConfigDict(env_prefix="YELLOWBULL_LLM_")
+
+    provider: str = Field(default="openai", description="LLM 提供商: openai / anthropic / ollama")
+    model: str = Field(default="gpt-4o", description="默认模型名称")
+    api_key: str = Field(default="", description="API Key（建议通过环境变量传入）")
+    base_url: str | None = Field(default=None, description="自定义 API 地址")
+    temperature: float = Field(default=0.3, description="采样温度")
+    max_tokens: int = Field(default=4096, description="最大输出 token 数")
+    timeout: int = Field(default=60, description="请求超时秒数")
+
+
+class ExecutionSettings(BaseSettings):
+    """任务执行配置"""
+
+    model_config = SettingsConfigDict(env_prefix="YELLOWBULL_EXECUTION_")
+
+    step_timeout: int = Field(default=120, description="单步执行超时秒数")
+    task_timeout: int = Field(default=1800, description="任务总超时秒数")
+    max_total_steps: int = Field(default=100, description="任务总步数预算")
+    max_retries_per_step: int = Field(default=2, description="单步最大重试次数")
+    max_subtask_steps: int = Field(default=3, description="子任务最大步骤数")
+    max_remedy_rounds: int = Field(default=2, description="补救最大轮数")
+
+
+class ExperienceSettings(BaseSettings):
+    """经验系统配置"""
+
+    model_config = SettingsConfigDict(env_prefix="YELLOWBULL_EXPERIENCE_")
+
+    enabled: bool = Field(default=True, description="是否启用经验记录")
+    max_retrieve_count: int = Field(default=5, description="最大检索经验条数")
+    min_relevance_score: float = Field(default=0.3, description="最低相关度阈值")
+    aging_period_temporary: int = Field(default=30, description="临时经验过期天数")
+    aging_period_project: int = Field(default=180, description="项目经验过期天数")
+    cleanup_threshold_days: int = Field(default=365, description="清理阈值天数")
+    score_weight_success_rate: float = Field(default=0.5, description="成功率权重")
+    score_weight_efficiency: float = Field(default=0.2, description="效率权重")
+    score_weight_tool: float = Field(default=0.2, description="工具使用权重")
+    score_weight_retry: float = Field(default=0.1, description="重试惩罚权重")
+
+
+class DatabaseSettings(BaseSettings):
+    """数据库配置"""
+
+    model_config = SettingsConfigDict(env_prefix="YELLOWBULL_DATABASE_")
+
+    path: str = Field(default="./data/yellowbull.db", description="SQLite 数据库文件路径")
+
+
+class Settings(BaseSettings):
+    """YellowBull 全局配置（聚合所有子模块配置）"""
+
+    model_config = SettingsConfigDict(
+        env_prefix="YELLOWBULL_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    llm: LLMSettings = Field(default_factory=LLMSettings, description="LLM 配置")
+    execution: ExecutionSettings = Field(default_factory=ExecutionSettings, description="执行配置")
+    experience: ExperienceSettings = Field(default_factory=ExperienceSettings, description="经验配置")
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings, description="数据库配置")
+    project_root: str = Field(default=".", description="当前项目根目录")
+
+    # 兼容旧版扁平字段
+    tools_allowed: str = Field(default="file,shell,search,code", description="启用的工具列表")
+    shell_safe_mode: bool = Field(default=True, description="Shell 安全模式")
+    code_sandbox_timeout: int = Field(default=30, description="代码执行超时秒数")
+
+    data_dir: Path = Field(default=None, description="数据目录")
+
+    def __init__(self, **data):  # noqa: ARG002
+        super().__init__(**data)
+        if self.data_dir is None:
+            self.data_dir = Path.home() / ".yellowbull"
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def enabled_tools(self) -> list[str]:
+        """用途: 解析逗号分隔的工具列表为 Python list
+
+        返回:
+            list[str]: 启用的工具名称列表
+        """
+        return [t.strip() for t in self.tools_allowed.split(",") if t.strip()]
