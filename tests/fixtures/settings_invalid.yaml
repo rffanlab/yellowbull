@@ -1,0 +1,7 @@
+llm:
+  provider: openai
+  model: gpt-4o
+  temperature: not_a_number
+
+database:
+  path: ./test_data/test.db
