@@ -104,40 +104,40 @@ class TestDatabaseSettings:
 class TestSettings:
     """TC-00-01: 顶层 Settings"""
 
-    def test_default_settings(self):
+    def test_default_settings(self, settings_data_dir):
         """TC-00-01-01: 默认配置加载"""
-        settings = Settings()
+        settings = Settings(data_dir=settings_data_dir)
         assert settings.llm.provider == "openai"
         assert settings.execution.step_timeout == 120
         assert settings.experience.enabled is True
 
-    def test_enabled_tools(self):
+    def test_enabled_tools(self, settings_data_dir):
         """解析工具列表"""
-        settings = Settings()
+        settings = Settings(data_dir=settings_data_dir)
         tools = settings.enabled_tools
         assert isinstance(tools, list)
         assert "file" in tools
 
-    def test_data_dir_created(self):
+    def test_data_dir_created(self, settings_data_dir):
         """数据目录自动创建"""
-        settings = Settings()
+        settings = Settings(data_dir=settings_data_dir)
         assert settings.data_dir.exists()
 
-    def test_extra_fields_ignored(self):
+    def test_extra_fields_ignored(self, settings_data_dir):
         """TC-00-10-03: 多余字段忽略"""
-        settings = Settings(unknown_field="ignored", another="value")
+        settings = Settings(data_dir=settings_data_dir, unknown_field="ignored", another="value")
         assert settings.llm.provider == "openai"
 
-    def test_env_prefix_isolation(self, monkeypatch):
+    def test_env_prefix_isolation(self, settings_data_dir, monkeypatch):
         """TC-00-10-05: 环境变量前缀冲突"""
         monkeypatch.setenv("LLM_API_KEY", "should-not-work")
-        settings = Settings()
+        settings = Settings(data_dir=settings_data_dir)
         assert settings.llm.api_key != "should-not-work"
 
-    def test_partial_override(self):
+    def test_partial_override(self, settings_data_dir):
         """TC-00-10-04: 嵌套配置部分覆盖"""
         llm = LLMSettings(model="custom-model")
-        settings = Settings(llm=llm)
+        settings = Settings(data_dir=settings_data_dir, llm=llm)
         assert settings.llm.model == "custom-model"
         assert settings.llm.provider == "openai"  # 默认值保留
 
@@ -145,9 +145,9 @@ class TestSettings:
 class TestSettingsEnvOverride:
     """TC-00-01-03: 环境变量覆盖测试"""
 
-    def test_full_env_override(self, monkeypatch):
+    def test_full_env_override(self, settings_data_dir, monkeypatch):
         monkeypatch.setenv("YELLOWBULL_LLM_PROVIDER", "anthropic")
         monkeypatch.setenv("YELLOWBULL_LLM_MODEL", "claude-3-opus")
-        settings = Settings()
+        settings = Settings(data_dir=settings_data_dir)
         assert settings.llm.provider == "anthropic"
         assert settings.llm.model == "claude-3-opus"

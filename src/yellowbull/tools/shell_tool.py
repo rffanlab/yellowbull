@@ -38,13 +38,13 @@ class ShellTool(Tool):
 
         返回: 无
         """
-        self._safe_mode = safe_mode
         super().__init__(
             name="shell",
             description="Shell 命令执行工具：支持执行系统命令，含安全检测和超时控制",
             side_effects=[SideEffectType.CONFIG_CHANGE],
             is_safe=False,
         )
+        self._safe_mode = safe_mode
 
     async def execute(self, params: dict[str, Any]) -> ToolResult:
         """用途: 执行 shell 命令

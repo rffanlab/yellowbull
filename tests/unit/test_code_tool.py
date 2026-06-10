@@ -50,7 +50,7 @@ class TestCodeToolGenerate:
         from unittest.mock import AsyncMock
 
         mock_llm = AsyncMock()
-        mock_llm.structured_chat = AsyncMock(return_value=type("r", (), {"model_dump": lambda: {"code": "print('hi')"}}))
+        mock_llm.chat = AsyncMock(return_value="print('hi')")
         tool_with_llm = CodeTool(llm_client=mock_llm)
         result = await tool_with_llm.execute({"action": "generate", "prompt": "hello", "language": "python"})
         assert result.success is True

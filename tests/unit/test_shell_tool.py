@@ -76,10 +76,14 @@ class TestShellToolTimeout:
     @pytest.mark.asyncio
     async def test_timeout_termination(self, tool):
         """TC-00-08-03: 超时终止"""
-        sleep_cmd = "timeout /t 10" if __import__("sys").platform.startswith("win") else "sleep 10"
+        import sys
+        if sys.platform.startswith("win"):
+            sleep_cmd = "python -c \"import time; time.sleep(10)\""
+        else:
+            sleep_cmd = "sleep 10"
         result = await tool.execute({"command": sleep_cmd, "timeout": 1})
         assert result.success is False
-        assert "超时" in result.error
+        assert "超时" in (result.error or "")
 
 
 class TestShellToolOutput:

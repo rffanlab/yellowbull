@@ -102,7 +102,7 @@ class DatabaseManager:
                 project_name TEXT,
                 keywords TEXT DEFAULT '[]',
                 tags TEXT DEFAULT '[]',
-                created_at TIMESTAMP NOT NULL
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS experience_keywords (
@@ -135,6 +135,8 @@ class DatabaseManager:
         返回: 无
         """
         if self._db:
+            # WAL checkpoint 确保数据写入主文件，释放 WAL/SHM 锁（Windows 必需）
+            await self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             await self._db.close()
             self._db = None
             self._initialized = False

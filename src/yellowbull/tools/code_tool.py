@@ -22,13 +22,13 @@ class CodeTool(Tool):
 
         返回: 无
         """
-        self._llm = llm_client
         super().__init__(
             name="code",
             description="代码分析工具：支持代码分析、代码生成（委托LLM）、代码修改",
             side_effects=[SideEffectType.FILE_WRITE],
             is_safe=True,
         )
+        self._llm = llm_client
 
     async def execute(self, params: dict[str, Any]) -> ToolResult:
         """用途: 根据 action 参数分发到对应的代码操作
@@ -135,22 +135,29 @@ class CodeTool(Tool):
         return ToolResult(success=True, output=code)
 
     async def _modify_code(self, params: dict[str, Any]) -> ToolResult:
-        """用途: 读取代码文件并通过 LLM 生成修改建议
+        """用途: 读取代码文件并通过 LLM 生成修改建议或直接替换
 
         入参:
-            params (dict[str, Any]): 需包含 file_path 和 instructions 字段
+            params (dict[str, Any]): 需包含 file_path 和 instructions 字段。
+                如果提供 replacement 字段，则直接替换文件内容（不依赖 LLM）。
 
         返回:
             ToolResult: 成功时 output 为修改后的代码
         """
-        if self._llm is None:
-            return ToolResult(success=False, error="LLM 客户端未配置，无法修改代码")
-
         file_path = Path(params["file_path"])
-        instructions = params["instructions"]
 
         if not file_path.exists():
             return ToolResult(success=False, error=f"文件不存在: {file_path}")
+
+        # 直接替换模式（不依赖 LLM）
+        if "replacement" in params:
+            file_path.write_text(params["replacement"], encoding="utf-8")
+            return ToolResult(success=True, output=params["replacement"])
+
+        if self._llm is None:
+            return ToolResult(success=False, error="LLM 客户端未配置，无法修改代码")
+
+        instructions = params["instructions"]
 
         content = file_path.read_text(encoding="utf-8", errors="replace")
 

@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from yellowbull.tools.file_tool import FileTool
+from yellowbull.tools.base import SideEffectType
 
 
 @pytest.fixture
@@ -58,7 +59,7 @@ class TestFileToolRead:
     async def test_read_file_with_chinese(self, tool, test_dir):
         """TC-00-13-02: 特殊字符路径"""
         file_path = Path(test_dir) / "测试文件.txt"
-        file_path.write_text("中文内容")
+        file_path.write_text("中文内容", encoding="utf-8")
         result = await tool.execute({"action": "read", "path": str(file_path)})
         assert result.success is True
         assert result.output == "中文内容"

@@ -92,7 +92,7 @@ class TestEnumSerialization:
         task = Task(goal="test", confidence=0.5)
         data = task.model_dump()
         assert data["status"] == TaskStatus.PENDING
-        assert str(data["status"]) == "pending"
+        assert data["status"].value == "pending"
 
     def test_step_status_enum(self):
         step = Step(step_id="s1", description="test", tool_hint="file")

@@ -3,6 +3,7 @@
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from openai import APIConnectionError, RateLimitError
 from pydantic import BaseModel
@@ -69,9 +70,10 @@ class TestLLMClientChat:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content="OK"))]
         mock_response.usage = MagicMock(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+        mock_request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
 
         with patch.object(client._client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
-            mock_create.side_effect = [APIConnectionError("conn error"), mock_response]
+            mock_create.side_effect = [APIConnectionError(message="conn error", request=mock_request), mock_response]
             result = await client.chat("system", ["user"])
             assert result == "OK"
             assert mock_create.call_count == 2
@@ -79,8 +81,9 @@ class TestLLMClientChat:
     @pytest.mark.asyncio
     async def test_retry_exhausted(self, client):
         """TC-00-11-05: 重试耗尽"""
+        mock_request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
         with patch.object(client._client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
-            mock_create.side_effect = APIConnectionError("persistent error")
+            mock_create.side_effect = APIConnectionError(message="persistent error", request=mock_request)
             with pytest.raises(APIConnectionError):
                 await client.chat("system", ["user"])
 

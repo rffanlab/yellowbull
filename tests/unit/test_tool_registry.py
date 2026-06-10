@@ -52,7 +52,7 @@ class TestToolBase:
         tool = EmptyTool()
         with pytest.raises(NotImplementedError):
             import asyncio
-            asyncio.get_event_loop().run_until_complete(tool.execute({}))
+            asyncio.run(tool.execute({}))
 
     def test_tool_validate_params_default(self):
         tool = _TestTool()
