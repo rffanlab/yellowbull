@@ -4,7 +4,7 @@ import logging
 import tempfile
 from io import StringIO
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -25,7 +25,7 @@ class TestConfigToLLMChain:
         mock_response.choices = [MagicMock(message=MagicMock(content="Chain test OK"))]
         mock_response.usage = MagicMock(prompt_tokens=5, completion_tokens=5, total_tokens=10)
 
-        with pytest.mock.patch.object(client._client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
+        with patch.object(client._client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = mock_response
             result = await client.chat("system", ["test"])
             assert result == "Chain test OK"

@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     shell_safe_mode: bool = Field(default=True, description="Shell 安全模式")
     code_sandbox_timeout: int = Field(default=30, description="代码执行超时秒数")
 
-    data_dir: Path = Field(default=None, description="数据目录")
+    data_dir: Path | None = Field(default=None, description="数据目录")
 
     def __init__(self, **data):  # noqa: ARG002
         super().__init__(**data)
