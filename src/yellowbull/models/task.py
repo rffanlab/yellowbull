@@ -3,11 +3,15 @@
 定义任务及其状态枚举。
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+from yellowbull.models.step import Step
 
 
 class TaskStatus(str, Enum):
@@ -33,3 +37,4 @@ class Task(BaseModel):
     clarification_options: list[str] = Field(default_factory=list, description="澄清选项列表")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     status: TaskStatus = Field(default=TaskStatus.PENDING, description="当前任务状态")
+    steps: list["Step"] = Field(default_factory=list, description="任务步骤列表")
