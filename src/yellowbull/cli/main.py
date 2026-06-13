@@ -1,6 +1,7 @@
 """CLI 主入口
 
 提供命令行参数解析、基础设施初始化和交互式 REPL / 单次任务执行。
+使用 Click Group 管理子命令：run（默认）、setup。
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
+from yellowbull.cli.setup import setup as setup_command
 from yellowbull.config.settings import Settings
 from yellowbull.llm.client import LLMClient
 from yellowbull.storage.db import DatabaseManager
@@ -22,6 +24,21 @@ from yellowbull.tools import CodeTool, FileTool, ShellTool, ToolRegistry
 
 console = Console()
 logger = logging.getLogger("yellowbull")
+
+
+# ── Click Group ───────────────────────────────────────────────
+
+
+@click.group()
+def cli() -> None:
+    """YellowBull — 本地开发 Agent"""
+    pass
+
+
+cli.add_command(setup_command, "setup")
+
+
+# ── run 子命令（默认任务执行） ────────────────────────────────
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -101,13 +118,13 @@ async def _init_infrastructure(settings: Settings) -> tuple[LLMClient, DatabaseM
     return llm_client, db_manager
 
 
-@click.command()
+@cli.command("run")
 @click.argument("task", required=False)
 @click.option("--model", "model", default=None, help="LLM 模型名称")
 @click.option("--project-root", "project_root", default=None, help="项目根目录")
 @click.option("--config", "config_path", default=None, help="配置文件路径")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="详细输出")
-def cli(
+def run_command(
     task: str | None,
     model: str | None,
     project_root: str | None,
