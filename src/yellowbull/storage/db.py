@@ -63,7 +63,14 @@ class DatabaseManager:
             return
 
         db_path = self._settings.path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        db_file = Path(db_path)
+
+        # 清理异常状态：如果 db 路径被错误创建为目录，先删除
+        if db_file.exists() and db_file.is_dir():
+            import shutil
+            shutil.rmtree(db_file)
+
+        db_file.parent.mkdir(parents=True, exist_ok=True)
 
         self._db = await aiosqlite.connect(db_path)
         self._db.row_factory = aiosqlite.Row

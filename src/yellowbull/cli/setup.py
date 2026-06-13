@@ -92,11 +92,13 @@ def _init_data_dirs(db_path_str: str) -> Path:
         db_path_str (str): 数据库文件路径
 
     返回:
-        Path: 数据库文件的 Path 对象
+        Path: 数据库文件的父目录（绝对路径）
     """
     db_path = Path(db_path_str)
+    if not db_path.is_absolute():
+        db_path = db_path.resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    return db_path
+    return db_path.parent
 
 
 async def _init_database(db_path: Path) -> None:
@@ -286,8 +288,8 @@ async def _test_llm_connection(settings: Settings) -> bool:
     try:
         client = LLMClient(settings=settings.llm)
         result = await client.chat(
-            messages=[{"role": "user", "content": "Say 'ok'"}],
-            max_tokens=10,
+            system_prompt="You are a helpful assistant.",
+            user_messages=["Say 'ok'"],
         )
         if result:
             summary = str(result)[:80]
@@ -394,7 +396,7 @@ def setup(
         console.print("[red]环境不满足要求，请修复后重试。[/red]")
         sys.exit(1)
 
-    console.print(f"[green]✓ Python {'.'.join(map(str(sys.version_info[:3])))} (>= 3.10)[/green]")
+    console.print(f"[green]✓ Python {'.'.join(map(str, sys.version_info[:3]))} (>= 3.10)[/green]")
     console.print("[green]✓ 依赖包完整[/green]")
 
     # Step 2~4: 交互引导
@@ -415,8 +417,14 @@ def setup(
 
     db_file = Path(db_path_input)
     if not db_file.is_absolute():
-        db_file = data_dir / db_file
-    asyncio.run(_init_database(db_file))
+        db_file = data_dir / db_file.name
+
+    # 数据库已存在时询问是否覆盖
+    if db_file.exists() and db_file.is_file():
+        if not click.confirm("  数据库文件已存在，是否覆盖？", default=False):
+            console.print("[yellow]跳过数据库初始化[/yellow]")
+    else:
+        asyncio.run(_init_database(db_file))
     console.print("[green]✓[/green] 数据库初始化完成 (WAL 模式)")
     console.print("[green]✓[/green] 经验表 / 关键词表 / 标签表 已就绪")
 

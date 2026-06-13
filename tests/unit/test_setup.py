@@ -232,7 +232,8 @@ class TestDataInit:
 
         assert (tmp_dir / "data").exists()
         assert (tmp_dir / "data").is_dir()
-        assert result == Path(db_path_str)
+        # _init_data_dirs 返回父目录（绝对路径）
+        assert result == (Path(db_path_str).parent)
 
     def test_init_database_creates_tables(self, tmp_dir: Path):
         """用途: 验证数据库初始化创建所有表
